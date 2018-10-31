@@ -22,7 +22,7 @@ channel_cache = {}
 
 class BSI:
 
-    def __init__(self, bob_port=6200):
+    def __init__(self, host, bob_port=6200):
 
         self.bob_slack_id = '<@UDPH2QM27>'
 
@@ -31,15 +31,16 @@ class BSI:
 
         # connect to bob
         self.socket_b = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket_b.connect(('localhost', bob_port))
+        self.socket_b.connect((host, bob_port))
         # Startup sequences to let bob know about this connection
         self.bob_startup()
 
         self.channel = "cwc"
+        self.logf = open('slack_bot_log.txt', 'a', 1)
 
         self.listen_to_sockets()
 
-        self.logf = open('slack_bot_log.txt', 'a', 1)
+
 
 
     def listen_to_sockets(self):
@@ -53,32 +54,28 @@ class BSI:
                         if data:
                             txt = data.decode('utf-8')
 
-                            print(txt)
                             parts = txt.split('\n')
                             for part in parts:
                                 if part:
                                     self.on_bob_message(part)
                     else:
                         res = self.read_message(self.sc)
-                        print(res)
+
                         if res:
-                            # (self.channel, username, msg, self.user_id) = res
-                            msg = res
+                            (self.channel, username, msg, self.user_id) = res
+
                             if self.bob_slack_id in msg:
                                 msg = msg.replace(self.bob_slack_id, '').strip()
                                 # For some reason on Mac we get Mac quotes that we replace
                                 msg = msg.replace('’', '\'')
                                 print(msg)
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
 
                                 self.send_to_bob(msg)
 
             except KeyboardInterrupt:
                 break
-
-
 
 
     def bob_startup(self):
@@ -129,13 +126,15 @@ class BSI:
         elif content.head().lower() == 'display-image':
             image_type = content.gets('type')
             path = content.gets('path')
+
             self.bob_show_image(path, image_type)
 
     def send_to_bob(self, comment):
         # Convert comment into kqml message format and send it to bob
-        if comment == 'reset bob':
+        if comment == 'reset':
             msg = '(tell :content (start-conversation))'
             self.socket_b.sendall(msg.encode('utf-8'))
+
         else:
             msg = '(tell :content (started-speaking :mode text :uttnum 1 ' + \
                     ':channel Desktop :direction input))'
@@ -164,28 +163,15 @@ class BSI:
             logger.error('Could not connect to Slack.')
             sys.exit()
 
-
-
-
-
     def bob_show_image(self, file_name, image_type):
         logger.info('showing image')
-        with open(file_name, 'rb') as fh:
-            img_content = fh.read()
-        # try:
-        #     tab_id, tab_label = image_tab_map[image_type]
-        # except KeyError:
-        # TODO: send slack agent
-        logger.error('Unknown image type: %s' % image_type)
-        tab_id = 99
-        tab_label = 'Other'
-        img = base64.b64encode(img_content)
-        img = 'data:image/png;base64,%s' % img
-        image_params = {'img': img, 'fileName': file_name,
-                        'tabIndex': tab_id, 'tabLabel': tab_label,
-                        'room': self.room_id, 'userId': self.user_id}
-        # self.socket_s.emit('agentSendImageRequest', image_params)
 
+        self.sc.api_call("files.upload",
+                                        channels=self.channel,
+                                        filename=file_name,
+                                        filetype="png",
+                                        file=open(file_name, 'rb'),
+                                        text=image_type)
 
 
     def get_user_name(self, sc, user_id):
@@ -238,13 +224,13 @@ class BSI:
                 #logger.info(msg)
                 return -1
             channel = event['channel']
-            print(event)
-            # user_name = self.get_user_name(sc, user)
-            #channel_name = get_channel_name(sc, channel)
-            # logger.info('Message received - [%s]: %s' %
-            #             (user_name, msg))
-            # return (channel, user_name, msg, user)
-            return msg
+
+            user_name = self.get_user_name(sc, user)
+            # channel_name = get_channel_name(sc, channel)
+            logger.info('Message received - [%s]: %s' %
+                        (user_name, msg))
+            return (channel, user_name, msg, user)
+
         return None
 
 
@@ -322,5 +308,5 @@ def print_json(js):
         print(s)
 
 
-bsi = BSI()
+bsi = BSI('localhost')
 
