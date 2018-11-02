@@ -35,12 +35,11 @@ class BSI:
         # Startup sequences to let bob know about this connection
         self.bob_startup()
 
-        self.channel = "cwc"
+        # self.channel = "cwc"
+        self.channel = "GDR5M1A6N"
         self.logf = open('slack_bot_log.txt', 'a', 1)
 
         self.listen_to_sockets()
-
-
 
 
     def listen_to_sockets(self):
@@ -63,8 +62,12 @@ class BSI:
 
                         if res:
                             (self.channel, username, msg, self.user_id) = res
+                            if self.channel == 'GDR5M1A6N' and username != 'bob':
+                                ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+                                self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
 
-                            if self.bob_slack_id in msg:
+                                self.send_to_bob(msg)
+                            elif self.bob_slack_id in msg:
                                 msg = msg.replace(self.bob_slack_id, '').strip()
                                 # For some reason on Mac we get Mac quotes that we replace
                                 msg = msg.replace('’', '\'')
@@ -134,7 +137,8 @@ class BSI:
         if comment == 'reset':
             msg = '(tell :content (start-conversation))'
             self.socket_b.sendall(msg.encode('utf-8'))
-
+        elif comment == 'help':
+            self.send_message(self.sc, self.channel, "Go to http://causalpath.org/askbob.html to see a list of questions you can ask me." )
         else:
             msg = '(tell :content (started-speaking :mode text :uttnum 1 ' + \
                     ':channel Desktop :direction input))'
@@ -188,16 +192,23 @@ class BSI:
 
 
     def get_channel_name(self, sc, channel_id):
+
         channel_name = channel_cache.get(channel_id)
         if channel_name:
             return channel_name
-        res = sc.server.api_call('channels.info', channel=channel_id)
-        channel_info = json.loads(res)
-        channel = channel_info['channel']
-        if channel['id'] == channel_id:
-            channel_cache[channel_id] = channel['name']
-            return channel['name']
-        return None
+
+        try:
+            res = sc.server.api_call('channels.info', channel=channel_id)
+            if res["ok"]:
+                channel_info = json.loads(res)
+                channel = channel_info['channel']
+                if channel['id'] == channel_id:
+                    channel_cache[channel_id] = channel['name']
+                    return channel['name']
+            else:
+                return None
+        except:
+            return None
 
 
     def read_message(self, sc):
@@ -226,9 +237,10 @@ class BSI:
             channel = event['channel']
 
             user_name = self.get_user_name(sc, user)
-            # channel_name = get_channel_name(sc, channel)
+            channel_name = self.get_channel_name(sc, channel)
             logger.info('Message received - [%s]: %s' %
                         (user_name, msg))
+
             return (channel, user_name, msg, user)
 
         return None
@@ -273,12 +285,6 @@ def format_stmts( stmts, output_format):
         with open(fname, 'wb') as fh:
             pickle.dump(stmts, fh)
         return fname
-    # elif output_format == 'pdf':
-    #     fname = 'indrabot.pdf'
-    #     ga = GraphAssembler(stmts)
-    #     ga.make_model()
-    #     ga.save_pdf(fname)
-    #     return fname
     elif output_format == 'json':
         msg = json.dumps(stmts_to_json(stmts), indent=1)
         return msg
@@ -308,5 +314,7 @@ def print_json(js):
         print(s)
 
 
-bsi = BSI('localhost')
+# bsi = BSI('localhost')
+bsi = BSI('35.192.108.199')
+# bsi = BSI('54.84.114.146')
 
