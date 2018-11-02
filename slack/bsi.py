@@ -1,18 +1,15 @@
 import os
 import sys
-import time
+
 import json
-import base64
-import pickle
+
 import select
 
 import datetime
 import socket
-import logging
+
 from slackclient import SlackClient
 from kqml import *
-
-from indra.statements import stmts_from_json, stmts_to_json
 
 
 logger = logging.getLogger('bob_slack')
@@ -107,19 +104,24 @@ class BSI:
 
     def on_bob_message(self, data):
         logger.debug('data: ' + data)
-        # Check what kind of message it is
-        kl = KQMLPerformative.from_string(data)
-        head = kl.head()
-        content = kl.get('content')
-        if head == 'tell' and content.head().lower() == 'display-model':
-            parts = data.split('\n')
-            if len(parts) > 1:
-                logger.error('!!!!!!!!!!!!\nMessage with multiple parts\n ' +
-                             '!!!!!!!!!!!')
-                logger.error(parts)
-        logger.info('Got message with head: %s' % head)
-        logger.info('Got message with content: %s' % content)
-        if not content:
+        try:
+            # print(data)
+            # Check what kind of message it is
+            kl = KQMLPerformative.from_string(data)
+            head = kl.head()
+            content = kl.get('content')
+            if head == 'tell' and content.head().lower() == 'display-model':
+                parts = data.split('\n')
+                if len(parts) > 1:
+                    logger.error('!!!!!!!!!!!!\nMessage with multiple parts\n ' +
+                                 '!!!!!!!!!!!')
+                    logger.error(parts)
+            logger.info('Got message with head: %s' % head)
+            logger.info('Got message with content: %s' % content)
+            if not content:
+                return
+        except:
+            self.send_message(self.sc, self.channel, data)
             return
         if content.head().lower() == 'spoken':
             spoken_phrase = self.get_spoken_phrase(content)
@@ -138,7 +140,7 @@ class BSI:
             msg = '(tell :content (start-conversation))'
             self.socket_b.sendall(msg.encode('utf-8'))
         elif comment == 'help':
-            self.send_message(self.sc, self.channel, "Go to http://causalpath.org/askbob.html to see a list of questions you can ask me." )
+            self.send_message(self.sc, self.channel, "Go to https://github.com/fdurupinar/bob-slack-interface/blob/master/README.md to see a list of questions you can ask me." )
         else:
             msg = '(tell :content (started-speaking :mode text :uttnum 1 ' + \
                     ':channel Desktop :direction input))'
@@ -247,49 +249,23 @@ class BSI:
 
 
     def send_message(self, sc, channel, msg):
+        # msg.replace('&','&amp;')
+        # msg.replace('<', '&lt;')
+        # msg.replace('>', '&gt;')
+
+        print(msg)
+        msg = msg.replace("<ul>", "")
+        msg = msg.replace("<li>", " (o) ")
+        msg = msg.replace("</li>", "")
+        msg = msg.replace("</ul>", "")
+
+        print(msg)
         sc.api_call("chat.postMessage",
                     channel=channel,
-                    text=msg, as_user=True)
+                    text=msg, as_user=True, mrkdwn=False,)
         logger.info('Message sent: %s' % msg)
 
 
-def format_stmts_str( stmts):
-    msg = ''
-    for stmt in stmts:
-        txt = stmt.evidence[0].text
-        if txt is None:
-            line = '`%s`\n' % stmt
-        else:
-            line = '`%s`, %s\n' % (stmt, txt)
-        msg += line
-
-    return msg
-
-
-def format_stmts( stmts, output_format):
-    if output_format == 'tsv':
-        msg = ''
-        for stmt in stmts:
-            if not stmt.evidence:
-                logger.warning('Statement %s without evidence' % stmt.uuid)
-                txt = ''
-                pmid = ''
-            else:
-                txt = stmt.evidence[0].text if stmt.evidence[0].text else ''
-                pmid = stmt.evidence[0].pmid if stmt.evidence[0].pmid else ''
-            line = '%s\t%s\t%s\n' % (stmt, txt, pmid)
-            msg += line
-        return msg
-    elif output_format == 'pkl':
-        fname = 'indrabot.pkl'
-        with open(fname, 'wb') as fh:
-            pickle.dump(stmts, fh)
-        return fname
-    elif output_format == 'json':
-        msg = json.dumps(stmts_to_json(stmts), indent=1)
-        return msg
-
-    return None
 
 def read_slack_token(fname=None):
     if fname is None:
@@ -304,17 +280,7 @@ def read_slack_token(fname=None):
         return None
 
 
-def decode_indra_stmts(stmts_json_str):
-        stmts_json = json.loads(stmts_json_str)
-        stmts = stmts_from_json(stmts_json)
-        return stmts
 
-def print_json(js):
-        s = json.dumps(js, indent=1)
-        print(s)
-
-
-# bsi = BSI('localhost')
-bsi = BSI('35.192.108.199')
-# bsi = BSI('54.84.114.146')
+bsi = BSI('localhost')
+# bsi = BSI('35.192.108.199')
 
