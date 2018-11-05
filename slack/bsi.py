@@ -238,8 +238,12 @@ class BSI:
                 return -1
             channel = event['channel']
 
-            user_name = self.get_user_name(sc, user)
-            channel_name = self.get_channel_name(sc, channel)
+            try:
+                user_name = self.get_user_name(sc, user)
+                channel_name = self.get_channel_name(sc, channel)
+            except:
+                user_name = 'bob'
+
             logger.info('Message received - [%s]: %s' %
                         (user_name, msg))
 
