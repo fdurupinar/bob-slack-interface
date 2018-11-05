@@ -58,8 +58,8 @@ class BSI:
                         res = self.read_message(self.sc)
 
                         if res:
-                            (self.channel, username, msg, self.user_id) = res
-                            if self.channel == 'GDR5M1A6N' and username != 'bob':
+                            (self.channel, msg, self.user_id) = res
+                            if self.channel == 'GDR5M1A6N' and self.user_id != 'UDPH2QM27':
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
 
@@ -180,37 +180,51 @@ class BSI:
                                         text=image_type)
 
 
-    def get_user_name(self, sc, user_id):
-        user_name = user_cache.get(user_id)
-        if user_name:
-            return user_name
-        res = sc.server.api_call('users.info', users=user_id)
-        user_info = json.loads(res)
-        for user in user_info['users']:
-            if user['id'] == user_id:
-                user_cache[user_id] = user['name']
-                return user['name']
-        return None
-
-
-    def get_channel_name(self, sc, channel_id):
-
-        channel_name = channel_cache.get(channel_id)
-        if channel_name:
-            return channel_name
-
-        try:
-            res = sc.server.api_call('channels.info', channel=channel_id)
-            if res["ok"]:
-                channel_info = json.loads(res)
-                channel = channel_info['channel']
-                if channel['id'] == channel_id:
-                    channel_cache[channel_id] = channel['name']
-                    return channel['name']
-            else:
-                return None
-        except:
-            return None
+    # def get_user_name(self, sc, user_id):
+    #     user_name = user_cache.get(user_id)
+    #     if user_name:
+    #         return user_name
+    #     try:
+    #
+    #         res = sc.server.api_call('conversations.list')
+    #         print(res)
+    #         for c in res['channels']:
+    #             print(c)
+    #
+    #         res = sc.server.api_call('users.info', users=user_id)
+    #         if res["ok"]:
+    #             user_info = json.loads(res)
+    #             for user in user_info['users']:
+    #                 if user['id'] == user_id:
+    #                     user_cache[user_id] = user['name']
+    #                     return user['name']
+    #         else:
+    #             return None
+    #     except:
+    #         return None
+    #
+    #
+    # def get_channel_name(self, sc, channel_id):
+    #
+    #     channel_name = channel_cache.get(channel_id)
+    #     if channel_name:
+    #         return channel_name
+    #
+    #     try:
+    #
+    #         # conversations.list
+    #
+    #         res = sc.server.api_call('channels.info', channel=channel_id)
+    #         if res["ok"]:
+    #             channel_info = json.loads(res)
+    #             channel = channel_info['channel']
+    #             if channel['id'] == channel_id:
+    #                 channel_cache[channel_id] = channel['name']
+    #                 return channel['name']
+    #         else:
+    #             return None
+    #     except:
+    #         return None
 
 
     def read_message(self, sc):
@@ -224,6 +238,8 @@ class BSI:
         if not event_type:
             return
         if event_type == 'message':
+
+
             try:
                 msg = event['text']
             except Exception:
@@ -238,16 +254,16 @@ class BSI:
                 return -1
             channel = event['channel']
 
-            try:
-                user_name = self.get_user_name(sc, user)
-                channel_name = self.get_channel_name(sc, channel)
-            except:
-                user_name = 'bob'
 
-            logger.info('Message received - [%s]: %s' %
-                        (user_name, msg))
 
-            return (channel, user_name, msg, user)
+            # user_name = self.get_user_name(sc, user)
+            # channel_name = self.get_channel_name(sc, channel)
+
+
+            logger.info('Message received : %s' %
+                        (msg))
+
+            return (channel, msg, user)
 
         return None
 
