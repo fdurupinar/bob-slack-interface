@@ -36,7 +36,7 @@ class BSI:
         self.bob_startup()
 
         # self.channel = "cwc"
-        self.channel = CWC_CHANNEL_ID # default channel when we startup bob
+        self.channel = BOB_CHANNEL_ID # default channel when we startup bob
         self.logf = open('slack_bot_log.txt', 'a', 1)
 
         self.listen_to_sockets()
@@ -51,7 +51,9 @@ class BSI:
                     if sock == self.socket_b:
                         data, addr = sock.recvfrom(1000000)
                         if data:
+
                             txt = data.decode('utf-8')
+
 
                             parts = txt.split('\n')
                             for part in parts:
@@ -75,7 +77,6 @@ class BSI:
                                 msg = msg.replace(self.bob_slack_id, '').strip()
                                 # For some reason on Mac we get Mac quotes that we replace
                                 msg = msg.replace('’', '\'')
-                                print(msg)
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
 
@@ -112,7 +113,6 @@ class BSI:
     def on_bob_message(self, data):
         logger.debug('data: ' + data)
         try:
-            # print(data)
             # Check what kind of message it is
             kl = KQMLPerformative.from_string(data)
             head = kl.head()
@@ -130,6 +130,7 @@ class BSI:
         except:
             self.send_message(self.sc, self.channel, data)
             return
+
         if content.head().lower() == 'spoken':
             spoken_phrase = self.get_spoken_phrase(content)
             # self.bob_to_sbgn_say(spoken_phrase)
@@ -138,8 +139,10 @@ class BSI:
         elif content.head().lower() == 'display-image':
             image_type = content.gets('type')
             path = content.gets('path')
-
             self.bob_show_image(path, image_type)
+        elif content.head().lower() == 'add-provenance':
+            html = content.gets('html')
+            self.send_message(self.sc, self.channel, html)
 
     def send_to_bob(self, comment):
         print("sending to bob " + comment)
@@ -188,57 +191,12 @@ class BSI:
                                         text=image_type)
 
 
-    # def get_user_name(self, sc, user_id):
-    #     user_name = user_cache.get(user_id)
-    #     if user_name:
-    #         return user_name
-    #     try:
-    #
-    #         res = sc.server.api_call('conversations.list')
-    #         print(res)
-    #         for c in res['channels']:
-    #             print(c)
-    #
-    #         res = sc.server.api_call('users.info', users=user_id)
-    #         if res["ok"]:
-    #             user_info = json.loads(res)
-    #             for user in user_info['users']:
-    #                 if user['id'] == user_id:
-    #                     user_cache[user_id] = user['name']
-    #                     return user['name']
-    #         else:
-    #             return None
-    #     except:
-    #         return None
-    #
-    #
-    # def get_channel_name(self, sc, channel_id):
-    #
-    #     channel_name = channel_cache.get(channel_id)
-    #     if channel_name:
-    #         return channel_name
-    #
-    #     try:
-    #
-    #         # conversations.list
-    #
-    #         res = sc.server.api_call('channels.info', channel=channel_id)
-    #         if res["ok"]:
-    #             channel_info = json.loads(res)
-    #             channel = channel_info['channel']
-    #             if channel['id'] == channel_id:
-    #                 channel_cache[channel_id] = channel['name']
-    #                 return channel['name']
-    #         else:
-    #             return None
-    #     except:
-    #         return None
 
 
     def read_message(self, sc):
         events = sc.rtm_read()
 
-        print(events)
+
         if not events:
             print('.', end='', flush=True)
             return None
@@ -289,7 +247,7 @@ class BSI:
         msg = msg.replace("</li>", "")
         msg = msg.replace("</ul>", "")
 
-        print(msg)
+
         sc.api_call("chat.postMessage",
                     channel=channel,
                     text=msg, as_user=True, mrkdwn=False,)
