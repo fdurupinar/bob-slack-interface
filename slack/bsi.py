@@ -140,9 +140,7 @@ class BSI:
             image_type = content.gets('type')
             path = content.gets('path')
             self.bob_show_image(path, image_type)
-        elif content.head().lower() == 'add-provenance':
-            html = content.gets('html')
-            self.send_message(self.sc, self.channel, html)
+
 
     def send_to_bob(self, comment):
         print("sending to bob " + comment)
