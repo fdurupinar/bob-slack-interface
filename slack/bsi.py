@@ -66,13 +66,14 @@ class BSI:
                             if  self.channel == 'DDQMJE47R' and self.user_id != 'UDPH2QM27':
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
-
+                                msg = msg.replace('<'+ self.user_id +'>', '').strip()
+                                msg = msg.replace('’', '\'')
+                                print(msg)
                                 self.send_to_bob(msg)
                             elif self.bob_slack_id in msg:
                                 msg = msg.replace(self.bob_slack_id, '').strip()
                                 # For some reason on Mac we get Mac quotes that we replace
                                 msg = msg.replace('’', '\'')
-                                print(self.channel)
                                 print(msg)
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
