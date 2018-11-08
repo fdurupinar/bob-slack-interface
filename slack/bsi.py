@@ -17,6 +17,9 @@ logger = logging.getLogger('bob_slack')
 user_cache = {}
 channel_cache = {}
 
+CWC_CHANNEL_ID = 'GDR5M1A6N'
+BOB_CHANNEL_ID = 'DDQMJE47R'
+
 class BSI:
 
     def __init__(self, host, bob_port=6200):
@@ -57,9 +60,10 @@ class BSI:
                     else:
                         res = self.read_message(self.sc)
 
-                        if res:
+                        if res and res!= -1:
                             (self.channel, msg, self.user_id) = res
-                            if self.channel == 'GDR5M1A6N' and self.user_id != 'UDPH2QM27':
+                            print("message " + msg + " " + self.user_id)
+                            if  self.channel == 'DDQMJE47R' and self.user_id != 'UDPH2QM27':
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
 
@@ -68,6 +72,7 @@ class BSI:
                                 msg = msg.replace(self.bob_slack_id, '').strip()
                                 # For some reason on Mac we get Mac quotes that we replace
                                 msg = msg.replace('’', '\'')
+                                print(self.channel)
                                 print(msg)
                                 ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
                                 self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
@@ -135,6 +140,7 @@ class BSI:
             self.bob_show_image(path, image_type)
 
     def send_to_bob(self, comment):
+        print("sending to bob " + comment)
         # Convert comment into kqml message format and send it to bob
         if comment == 'reset':
             msg = '(tell :content (start-conversation))'
