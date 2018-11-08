@@ -18,7 +18,7 @@ user_cache = {}
 channel_cache = {}
 
 CWC_CHANNEL_ID = 'GDR5M1A6N'
-BOB_CHANNEL_ID = 'DDQMJE47R'
+BOB_CHANNEL_ID = 'DDQMJE47R' # bob-funda channel id
 
 class BSI:
 
@@ -36,7 +36,7 @@ class BSI:
         self.bob_startup()
 
         # self.channel = "cwc"
-        self.channel = "GDR5M1A6N"
+        self.channel = CWC_CHANNEL_ID # default channel when we startup bob
         self.logf = open('slack_bot_log.txt', 'a', 1)
 
         self.listen_to_sockets()
@@ -63,14 +63,15 @@ class BSI:
                         if res and res!= -1:
                             (self.channel, msg, self.user_id) = res
                             print("message " + msg + " " + self.user_id)
-                            if  self.channel == 'DDQMJE47R' and self.user_id != 'UDPH2QM27':
-                                ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
-                                self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
-                                msg = msg.replace('<'+ self.user_id +'>', '').strip()
-                                msg = msg.replace('’', '\'')
-                                print(msg)
-                                self.send_to_bob(msg)
-                            elif self.bob_slack_id in msg:
+                            # if  self.channel == 'DDQMJE47R' and self.user_id != 'UDPH2QM27': # automatically sends to CwC channel
+                            #     ts = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+                            #     self.logf.write('%s\t%s\t%s\t' % (msg, self.user_id, ts))
+                            #     msg = msg.replace('<'+ self.user_id +'>', '').strip()
+                            #     msg = msg.replace('’', '\'')
+                            #     print(msg)
+                            #     self.send_to_bob(msg)
+                            # elif
+                            if self.bob_slack_id in msg:
                                 msg = msg.replace(self.bob_slack_id, '').strip()
                                 # For some reason on Mac we get Mac quotes that we replace
                                 msg = msg.replace('’', '\'')
@@ -236,6 +237,8 @@ class BSI:
 
     def read_message(self, sc):
         events = sc.rtm_read()
+
+        print(events)
         if not events:
             print('.', end='', flush=True)
             return None
@@ -280,7 +283,7 @@ class BSI:
         # msg.replace('<', '&lt;')
         # msg.replace('>', '&gt;')
 
-        print(msg)
+
         msg = msg.replace("<ul>", "")
         msg = msg.replace("<li>", " (o) ")
         msg = msg.replace("</li>", "")
